@@ -1,0 +1,82 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:task="http://www.springframework.org/schema/task"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/mvc
+        http://www.springframework.org/schema/mvc/spring-mvc.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd
+        http://www.springframework.org/schema/tx
+        http://www.springframework.org/schema/tx/spring-tx.xsd
+        http://www.springframework.org/schema/task
+        http://www.springframework.org/schema/task/spring-task-3.2.xsd
+">
+
+    <!--    3.开启SpringMVC注解模式-->
+    <context:component-scan base-package="edu.myblog"/>
+    <mvc:annotation-driven>
+        <mvc:message-converters>
+            <bean class="org.springframework.http.converter.StringHttpMessageConverter">
+                <property name="supportedMediaTypes">
+                    <list>
+                        <value>text/html;charset=utf-8</value>
+                        <!--                        6.JSON序列化输出时的乱码解决-->
+                        <value>application/json;charset=utf-8</value>
+                    </list>
+                </property>
+            </bean>
+        </mvc:message-converters>
+    </mvc:annotation-driven>
+    <mvc:default-servlet-handler/>
+    <!--    5.配置Freemarket模板引擎 这个没弄，不配置-->
+    <!--    mybatis与spring的整合配置   -->
+    <bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource">
+        <property name="driverClassName" value="com.mysql.cj.jdbc.Driver"></property>
+        <property name="url"
+                  value="jdbc:mysql://localhost:3306/myblog?useUnicode=ture&amp;characterEncoding=UTF-8&amp;serverTimezone=GMT%2B8"></property>
+        <property name="username" value="admin123"></property>
+        <property name="password" value="123456"></property>
+        <property name="initialSize" value="5"></property>
+        <property name="maxActive" value="20"></property>
+    </bean>
+    <!--    sqlSessionFactoryBean 用于根据配置信息创建SqlSessionFactoru,不再需要我们自己编码创建 原生的: <bean id="sessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean"> -->
+    <bean id="sqlSessionFactory" class="com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean">
+        <property name="dataSource" ref="dataSource"></property>
+        <property name="mapperLocations" value="classpath:mappers/*.xml"></property>
+        <!--        Mybatis整合： 5.Mybatis配置文件地址-->
+        <property name="configLocation" value="classpath:mybatis-config.xml"></property>
+    </bean>
+    <!--   Mybatis整合： 4.配置Mapper扫描器-->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="edu.myblog.mapper"></property>
+    </bean>
+    <!--    声明式事务配置-->
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource"></property>
+    </bean>
+    <tx:annotation-driven transaction-manager="transactionManager"></tx:annotation-driven>
+    <!--    配置拦截器-->
+    <mvc:interceptors>
+        <mvc:interceptor>
+            <mvc:mapping path="/*"/>
+            <bean class="edu.myblog.interceptor.AuthorizationInterceptor"/>
+        </mvc:interceptor>
+    </mvc:interceptors>
+
+    <!-- 静态资源访问 -->
+    <mvc:resources location="/images/" mapping="/images/**"/>
+    <!--    上传图片设置-->
+    <bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+        <!--        最大上传图片大小-->
+        <property name="maxUploadSize" value="4194304"/>
+        <!--        最大内存大小-->
+        <property name="maxInMemorySize" value="4096"/>
+        <property name="defaultEncoding" value="UTF-8"/>
+    </bean>
+<!--    定时任务-->
+    <task:annotation-driven/>
+</beans>
